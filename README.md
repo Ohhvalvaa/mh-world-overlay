@@ -1,154 +1,177 @@
 # MH World Overlay
 
-Pannello informativo per **Monster Hunter: World** (PC, Steam), disegnato dentro il gioco tramite
-[SharpPluginLoader](https://github.com/Fexty12573/SharpPluginLoader).
+**A lightweight in-game HUD for Monster Hunter: World (PC) — monster health, capture threshold,
+elemental weaknesses and a party damage meter, drawn directly inside the game.**
+
+**No external applications.** Nothing to run alongside the game: no companion app, no second window,
+no browser tab, no always-on-top desktop overlay. It is a small plugin (a ~30 KB DLL) loaded by the
+game itself through [SharpPluginLoader](https://github.com/Fexty12573/SharpPluginLoader) — you just
+start Monster Hunter: World from Steam as usual and the HUD is there.
 
 ![MH World Overlay](docs/screenshot.png)
 
-*(Anteprima con dati di prova)*
+*(Preview with sample data)*
 
-## Cosa mostra
+## Features
 
-- **Vita del mostro che stai combattendo**: compare quando colpisci un grande mostro e sparisce
-  30 secondi dopo l'ultimo colpo. Se colpisci un altro mostro, il pannello passa a quello.
-- **Soglia di cattura**: una linea `/` sulla barra indica il punto in cui il mostro diventa
-  catturabile (quando nel gioco compare il teschio). Non c'è per i mostri non catturabili.
-- **Debolezze elementali**: icone degli elementi prima della barra del mostro.
-- **Danni del gruppo**: una barra per ogni cacciatore con nome, danni, percentuale e icona dell'arma.
-  - In gruppo i danni sono quelli registrati dal gioco per ogni giocatore (totale della missione).
-  - Da solo il valore è la vita persa dal mostro (comprende anche Felyne e ambiente).
+- **Health of the monster you are fighting** — appears as soon as you hit a large monster and fades
+  out 30 seconds after your last hit. Hit another monster and the HUD switches to it.
+- **Capture threshold marker** — a `/` on the health bar shows exactly where the monster becomes
+  capturable (the moment the skull icon appears in game). Hidden for monsters that can't be captured.
+- **Elemental weaknesses** — the game's own element icons, next to the monster's health bar.
+- **Party damage meter** — one bar per hunter with name, damage, share of the total and the game's
+  weapon icon.
+  - In multiplayer it uses the per-player damage the game itself records (quest total).
+  - Solo it shows the health the monster has lost (this includes your Palico and the environment).
+- **Never gets in the way** — transparent, top-right corner, and it never takes mouse or keyboard
+  input, so it can't block your controls.
+- **Uses the game's own icons** — read at runtime from your installed copy of the game; no game files
+  are shipped with this project.
+- **Read-only** — it only reads game data. It never changes damage, items, quests or matchmaking.
 
-Il pannello è trasparente, sta in alto a destra e **non riceve mouse o tastiera**: non blocca mai i
-comandi del gioco. Le icone sono quelle del gioco, lette dalla tua copia di Monster Hunter: World
-mentre il gioco è in esecuzione (il progetto non contiene file del gioco).
+Colour scheme: the monster bar is black, other hunters are white, you are grey.
 
-Colori: barra del mostro nera, altri giocatori bianca, tu grigia.
+## Requirements
 
-## Requisiti
-
-| Cosa | Versione | Note |
+| What | Version | Notes |
 |---|---|---|
-| Monster Hunter: World (Steam, con o senza Iceborne) | ultima versione (**421810**) | Su versioni diverse i danni del gruppo si spengono da soli; il resto funziona finché SharpPluginLoader è compatibile. |
-| [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (x64) | 8.0.x | Necessario per SharpPluginLoader. |
-| [SharpPluginLoader](https://github.com/Fexty12573/SharpPluginLoader/releases) | **2.0.0** | Il caricatore dei plugin C#. |
+| Monster Hunter: World (Steam, with or without Iceborne) | latest (**421810**) | On other versions the party damage meter turns itself off; everything else keeps working as long as SharpPluginLoader supports that version. |
+| [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0) (x64) | 8.0.x | Needed by SharpPluginLoader (one-time install). |
+| [SharpPluginLoader](https://github.com/Fexty12573/SharpPluginLoader/releases) | **2.0.0** | The in-game plugin loader. It is a DLL in the game folder, not a separate program. |
 
-Provato in DirectX 11. SharpPluginLoader supporta anche DirectX 12, ma con l'overlay non è ancora stato provato.
+Tested with DirectX 11. SharpPluginLoader also supports DirectX 12, but the overlay has not been
+tested there yet.
 
-## Installazione
+## Installation
 
-> Prima di iniziare chiudi il gioco. Per trovare la cartella del gioco: in Steam, tasto destro su
-> Monster Hunter: World → **Gestisci** → **Sfoglia file locali**. Di solito è
+> Close the game first. To find the game folder: in Steam, right-click Monster Hunter: World →
+> **Manage** → **Browse local files**. It is usually
 > `C:\Program Files (x86)\Steam\steamapps\common\Monster Hunter World`.
 
-### 1. Installa .NET 8 Desktop Runtime
+### 1. Install the .NET 8 Desktop Runtime
 
-Scarica da https://dotnet.microsoft.com/download/dotnet/8.0 la voce **.NET Desktop Runtime 8.0.x**
-per **Windows x64** e installala. Se hai già .NET 8 (Runtime o SDK) puoi saltare questo passo.
+Download **.NET Desktop Runtime 8.0.x** for **Windows x64** from
+https://dotnet.microsoft.com/download/dotnet/8.0 and install it. Skip this step if you already have
+.NET 8 (Runtime or SDK).
 
-Per controllare, apri il Prompt dei comandi e scrivi `dotnet --list-runtimes`: deve comparire una
-riga `Microsoft.WindowsDesktop.App 8.0.…`.
+To check, open Command Prompt and run `dotnet --list-runtimes`: you should see a line starting with
+`Microsoft.WindowsDesktop.App 8.0.`.
 
-### 2. Installa SharpPluginLoader
+### 2. Install SharpPluginLoader
 
-1. Vai su https://github.com/Fexty12573/SharpPluginLoader/releases e scarica
+1. Go to https://github.com/Fexty12573/SharpPluginLoader/releases and download
    `SharpPluginLoader-2.0.0-win32.zip`.
-2. Estrai **tutto il contenuto** dello zip nella cartella del gioco, così che ci siano:
+2. Extract **everything** in the zip into the game folder, so that you get:
    ```
    Monster Hunter World\
    ├─ MonsterHunterWorld.exe
-   ├─ winmm.dll                         ← da SharpPluginLoader
-   └─ nativePC\plugins\CSharp\Loader\    ← da SharpPluginLoader
+   ├─ winmm.dll                         ← from SharpPluginLoader
+   └─ nativePC\plugins\CSharp\Loader\    ← from SharpPluginLoader
    ```
 
-### 3. Installa MH World Overlay
+### 3. Install MH World Overlay
 
-1. Vai nella pagina [Releases](../../releases) di questo progetto e scarica
-   `MHWorldOverlay-x.y.z.zip`.
-2. Estrai **tutto il contenuto** dello zip nella cartella del gioco. Il risultato deve essere:
+1. Download `MHWorldOverlay-x.y.z.zip` from the [Releases](../../releases) page.
+2. Extract **everything** in the zip into the game folder. The result must be:
    ```
    Monster Hunter World\
    └─ nativePC\plugins\CSharp\MHWorldOverlay\MHWorldOverlay.dll
    ```
 
-### 4. Avvia il gioco
+### 4. Play
 
-Avvia Monster Hunter: World da Steam come sempre. Il pannello compare in alto a destra appena
-colpisci un grande mostro.
+Start Monster Hunter: World from Steam as usual. The HUD appears in the top-right corner as soon as
+you hit a large monster.
 
-## Controllare che funzioni
+## Check that it works
 
-Dopo aver avviato il gioco almeno una volta, apri il file
-`nativePC\plugins\CSharp\Loader\SharpPluginLoader.log` nella cartella del gioco e cerca:
+After starting the game at least once, open
+`nativePC\plugins\CSharp\Loader\SharpPluginLoader.log` in the game folder and look for:
 
 ```
 Loading plugin MHWorldOverlay
 [MH World Overlay] Versione 421810: danni del gruppo attivi
 ```
 
-Puoi anche premere **F9** nel gioco: si apre il menu di SharpPluginLoader (premi di nuovo F9 per
-chiuderlo).
+(The second line means "version 421810: party damage enabled".)
 
-## Aggiornare
+You can also press **F9** in game: it opens the SharpPluginLoader menu (press F9 again to close it).
 
-Chiudi il gioco ed estrai lo zip della nuova versione nella cartella del gioco, sovrascrivendo
+## Update
+
+Close the game and extract the new release zip into the game folder, overwriting
 `MHWorldOverlay.dll`.
 
-## Disinstallare
+## Uninstall
 
-- **Solo l'overlay**: cancella la cartella `nativePC\plugins\CSharp\MHWorldOverlay`.
-- **Anche SharpPluginLoader**: cancella `winmm.dll` nella cartella del gioco e la cartella
+- **Overlay only**: delete the folder `nativePC\plugins\CSharp\MHWorldOverlay`.
+- **SharpPluginLoader too**: delete `winmm.dll` in the game folder and the folder
   `nativePC\plugins\CSharp`.
 
-## Problemi comuni
+## Troubleshooting
 
-| Problema | Soluzione |
+| Problem | Fix |
 |---|---|
-| Il pannello non compare | Compare solo dopo aver colpito un **grande** mostro. Controlla il log (sezione sopra): se manca `Loading plugin MHWorldOverlay`, il file non è nella cartella giusta. |
-| Nel log non c'è niente / il file di log non esiste | SharpPluginLoader non è installato correttamente: controlla `winmm.dll` nella cartella del gioco e il .NET 8 Desktop Runtime. |
-| `versione diversa da 421810, danni del gruppo spenti` | Il gioco ha una versione diversa da quella supportata: la vita del mostro funziona, i danni per giocatore no (da solo vedi comunque la vita persa dal mostro). |
-| Un altro mod si disattiva o il gioco si chiude all'avvio | Alcuni mod che modificano le stesse funzioni del gioco (per esempio **Seamless Co-op**) non sono compatibili con SharpPluginLoader. Disattiva l'altro mod. |
-| Icone mancanti | Le icone vengono dalla tua copia del gioco: verifica l'integrità dei file da Steam (Proprietà → File installati → Verifica integrità). |
+| The HUD doesn't show up | It only appears after you hit a **large** monster. Check the log (see above): if `Loading plugin MHWorldOverlay` is missing, the DLL is not in the right folder. |
+| The log file is empty or missing | SharpPluginLoader is not installed correctly: check `winmm.dll` in the game folder and the .NET 8 Desktop Runtime. |
+| Log says `versione diversa da 421810, danni del gruppo spenti` | Your game version differs from the supported one: monster health works, per-player damage doesn't (solo you still see the monster's lost health). |
+| Another mod disables itself, or the game closes on startup | Some mods that hook the same game functions (for example **Seamless Co-op**) are not compatible with SharpPluginLoader. Disable the other mod. |
+| Icons are missing | Icons come from your copy of the game: verify the game files in Steam (Properties → Installed Files → Verify integrity). |
 
-## Compilare dal codice
+## FAQ
 
-Serve il [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
+**Is this like HunterPie?**
+It shows a focused subset of that kind of information, but it works differently: there is no
+desktop application to launch and keep open. Everything runs inside the game process and is drawn by
+the game's own renderer.
+
+**Does it work online?**
+Yes, the damage meter is designed for multiplayer. It only reads data and sends nothing over the
+network. As with any PC mod, use it at your own risk.
+
+**Can I move or resize it?**
+Not yet — it is fixed to the top-right corner.
+
+## Build from source
+
+Requires the [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0).
 
 ```
 dotnet build -c Release
 ```
 
-La DLL è in `bin\Release\net8.0\MHWorldOverlay.dll`. Per provare la grafica senza andare a caccia
-c'è un'anteprima con dati finti: `dotnet build -c Release -p:DefineConstants=PREVIEW`.
+The DLL is in `bin\Release\net8.0\MHWorldOverlay.dll`. To check the layout without going on a hunt,
+there is a preview with sample data: `dotnet build -c Release -p:DefineConstants=PREVIEW`.
 
-## Avvertenze
+## Disclaimer
 
-- Usalo a tuo rischio. L'overlay **legge** soltanto i dati del gioco: non modifica danni, oggetti,
-  missioni o matchmaking.
-- Progetto non ufficiale, non affiliato né approvato da CAPCOM. Monster Hunter: World e le sue
-  icone sono © CAPCOM.
+- Use at your own risk. The overlay only **reads** game data.
+- Unofficial fan project, not affiliated with or endorsed by CAPCOM. Monster Hunter: World and its
+  icons are © CAPCOM.
 
-## Riconoscimenti
+## Credits
 
-- [SharpPluginLoader](https://github.com/Fexty12573/SharpPluginLoader) di Fexty12573 (MIT).
-- [HunterPie](https://github.com/HunterPie/HunterPie) (Apache 2.0): dati dei mostri (soglie di
-  cattura, debolezze) e indirizzi di memoria per i danni del gruppo. Dettagli in
+- [SharpPluginLoader](https://github.com/Fexty12573/SharpPluginLoader) by Fexty12573 (MIT).
+- [HunterPie](https://github.com/HunterPie/HunterPie) (Apache 2.0): monster data (capture thresholds,
+  weaknesses) and memory addresses for party damage. Details in
   [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-## Licenza
+## License
 
 [MIT](LICENSE)
 
 ---
 
-## English (short)
+## Italiano (in breve)
 
-In-game overlay for **Monster Hunter: World** (PC) built on SharpPluginLoader: health bar of the
-monster you are fighting with capture threshold marker, elemental weaknesses, and per-hunter damage
-with weapon icons. Transparent, top-right, never captures input.
+HUD dentro il gioco per **Monster Hunter: World** (PC): vita del mostro che stai combattendo con la
+soglia di cattura, debolezze elementali e danni di ogni cacciatore con l'icona dell'arma.
+**Nessuna applicazione esterna**: è un plugin caricato dal gioco tramite SharpPluginLoader, avvii il
+gioco da Steam e basta.
 
-**Install:** install the [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
-(x64) → extract [SharpPluginLoader 2.0.0](https://github.com/Fexty12573/SharpPluginLoader/releases)
-into the game folder → extract `MHWorldOverlay-x.y.z.zip` from [Releases](../../releases) into the
-game folder (result: `nativePC\plugins\CSharp\MHWorldOverlay\MHWorldOverlay.dll`) → start the game.
-Party damage requires game version 421810. Not compatible with mods that hook the same game
-functions (e.g. Seamless Co-op).
+**Installazione:** installa il [.NET 8 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/8.0)
+(x64) → estrai [SharpPluginLoader 2.0.0](https://github.com/Fexty12573/SharpPluginLoader/releases)
+nella cartella del gioco → estrai `MHWorldOverlay-x.y.z.zip` dalla pagina [Releases](../../releases)
+nella cartella del gioco (risultato: `nativePC\plugins\CSharp\MHWorldOverlay\MHWorldOverlay.dll`) →
+avvia il gioco. I danni del gruppo richiedono la versione 421810. Non compatibile con mod che
+modificano le stesse funzioni del gioco (per esempio Seamless Co-op).
