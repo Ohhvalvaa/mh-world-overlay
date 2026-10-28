@@ -83,6 +83,12 @@ To check, open Command Prompt and run `dotnet --list-runtimes`: you should see a
 Start Monster Hunter: World from Steam as usual. The HUD appears in the top-right corner as soon as
 you hit a large monster.
 
+> **A black console window (cmd) opens with the game?** That's normal and harmless: it is
+> SharpPluginLoader's log window, not a virus and not part of this overlay. To hide it, close the
+> game, open `loader-config.json` in the game folder (SharpPluginLoader creates it on the first
+> launch) and change `"logcmd": true` to `"logcmd": false`. Set it back to `true` only if you need
+> to see errors.
+
 ## Check that it works
 
 After starting the game at least once, open
@@ -116,6 +122,7 @@ Close the game and extract the new release zip into the game folder, overwriting
 | The log file is empty or missing | SharpPluginLoader is not installed correctly: check `winmm.dll` in the game folder and the .NET 8 Desktop Runtime. |
 | Log says `versione diversa da 421810, danni del gruppo spenti` | Your game version differs from the supported one: monster health works, per-player damage doesn't (solo you still see the monster's lost health). |
 | Another mod disables itself, or the game closes on startup | Some mods that hook the same game functions (for example **Seamless Co-op**) are not compatible with SharpPluginLoader. Disable the other mod. |
+| A black console (cmd) window stays open while playing | It's SharpPluginLoader's log window. In `loader-config.json` (game folder) set `"logcmd": false`, then restart the game. |
 | Icons are missing | Icons come from your copy of the game: verify the game files in Steam (Properties → Installed Files → Verify integrity). |
 
 ## FAQ
@@ -175,3 +182,8 @@ nella cartella del gioco → estrai `MHWorldOverlay-x.y.z.zip` dalla pagina [Rel
 nella cartella del gioco (risultato: `nativePC\plugins\CSharp\MHWorldOverlay\MHWorldOverlay.dll`) →
 avvia il gioco. I danni del gruppo richiedono la versione 421810. Non compatibile con mod che
 modificano le stesse funzioni del gioco (per esempio Seamless Co-op).
+
+**Si apre una finestra nera (cmd) insieme al gioco?** È normale e innocua: è la finestra dei
+messaggi di SharpPluginLoader, non un virus e non fa parte dell'overlay. Per toglierla chiudi il
+gioco, apri `loader-config.json` nella cartella del gioco e cambia `"logcmd": true` in
+`"logcmd": false`.
