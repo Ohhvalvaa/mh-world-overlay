@@ -51,6 +51,7 @@ public sealed class OverlayPlugin : IPlugin
     private DamageRow[] _damage = [];
 
     // Mostro che stai combattendo: l'ultimo grande mostro che ha perso vita.
+    // Se è l'obiettivo della missione, un altro mostro colpito lì vicino non gli ruba il pannello.
     private readonly Dictionary<nint, float> _lastHealth = [];
     private nint _targetInstance;
     private readonly Stopwatch _sinceLastHit = new();
@@ -100,10 +101,16 @@ public sealed class OverlayPlugin : IPlugin
                 .Where(m => !SmallMonsters.Contains(m.Type) && m.MaxHealth > 0)
                 .ToArray();
 
+            var objectives = QuestObjectives();
+            var current = monsters.FirstOrDefault(m => m.Instance == _targetInstance);
+            var currentLocked = current is not null && objectives.Contains(current.Type) && current.Health > 0
+                && _sinceLastHit.Elapsed.TotalSeconds < TargetTimeoutSeconds;
+
             foreach (var m in monsters)
             {
                 var health = m.Health;
-                if (_lastHealth.TryGetValue(m.Instance, out var previous) && health < previous)
+                if (_lastHealth.TryGetValue(m.Instance, out var previous) && health < previous
+                    && (m.Instance == _targetInstance || !currentLocked || objectives.Contains(m.Type)))
                 {
                     _targetInstance = m.Instance;
                     _sinceLastHit.Restart();
@@ -134,6 +141,27 @@ public sealed class OverlayPlugin : IPlugin
                 _monsterErrorLogged = true;
             }
         }
+    }
+
+    // Mostri ancora da cacciare, catturare o uccidere nella missione; vuoto fuori missione o in esplorazione.
+    private static HashSet<MonsterType> QuestObjectives()
+    {
+        var types = new HashSet<MonsterType>();
+        try
+        {
+            if (Quest.CurrentQuestId < 0)
+                return types;
+            foreach (var o in Quest.Objectives)
+            {
+                if (((int)o.Type & (int)QuestTargetType.Monster) != 0 && o.Count < o.RequiredCount)
+                    types.Add((MonsterType)o.Id);
+            }
+        }
+        catch
+        {
+            types.Clear();
+        }
+        return types;
     }
 
     private void UpdateDamage()

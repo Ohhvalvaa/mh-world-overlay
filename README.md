@@ -16,6 +16,9 @@ start Monster Hunter: World from Steam as usual and the HUD is there.
 
 - **Health of the monster you are fighting** — appears as soon as you hit a large monster and fades
   out 30 seconds after your last hit. Hit another monster and the HUD switches to it.
+- **Quest target first** — when several large monsters are close together, the HUD sticks to the
+  quest target: hitting an intruder (or a turf war, or a teammate's hits) won't steal the panel.
+  It moves on only when the target is slain or captured, or after 30 seconds without hits.
 - **Capture threshold marker** — a `/` on the health bar shows exactly where the monster becomes
   capturable (the moment the skull icon appears in game). Hidden for monsters that can't be captured.
 - **Elemental weaknesses** — the game's own element icons, next to the monster's health bar.
@@ -173,6 +176,7 @@ there is a preview with sample data: `dotnet build -c Release -p:DefineConstants
 
 HUD dentro il gioco per **Monster Hunter: World** (PC): vita del mostro che stai combattendo con la
 soglia di cattura, debolezze elementali e danni di ogni cacciatore con l'icona dell'arma.
+Se ci sono più grandi mostri vicini, il pannello resta sull'obiettivo della missione.
 **Nessuna applicazione esterna**: è un plugin caricato dal gioco tramite SharpPluginLoader, avvii il
 gioco da Steam e basta.
 
