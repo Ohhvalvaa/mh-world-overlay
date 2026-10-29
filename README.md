@@ -30,7 +30,9 @@ start Monster Hunter: World from Steam as usual and the HUD is there.
   - Solo it shows the health the monster has lost (this includes your Palico and the environment).
 - **Scales with your resolution** — sizes follow your screen height (1080p, 1440p, 4K, ultrawide…),
   with an extra size slider in the settings.
-- **Looks like the game's HUD** — the bars are styled after MHW's own health and stamina bars.
+- **Looks like the game's HUD** — thin bars shaped like MHW's own health and stamina bars: an arrow
+  tip on the monster bar (like your health), a diamond tip on the hunter bars (like stamina) and the
+  closing bracket on the right.
 - **Never gets in the way** — transparent, top-right corner, and it never takes mouse or keyboard
   input, so it can't block your controls.
 - **Uses the game's own icons** — read at runtime from your installed copy of the game; no game files

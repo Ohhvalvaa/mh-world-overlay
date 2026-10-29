@@ -29,7 +29,7 @@ public sealed class OverlayPlugin : IPlugin
     ];
 
     // Barre nello stile dell'HUD del gioco: riempimento sfumato (chiaro sopra, scuro sotto) dentro una
-    // cornice nera con un filo metallico. Palette della mod: solo bianco, nero e grigi.
+    // cornice nera, punta a sinistra e parentesi a destra. Palette della mod: solo bianco, nero e grigi.
     // Mostro nero, altri giocatori bianco, tu grigio; la parte vuota della barra è un grigio chiaro trasparente.
     private readonly record struct BarColors(uint Top, uint Bottom);
     private static readonly BarColors MonsterFill = new(Rgba(64, 64, 64), Rgba(0, 0, 0));
@@ -40,6 +40,7 @@ public sealed class OverlayPlugin : IPlugin
     private static readonly uint FrameOuter = Rgba(0, 0, 0, 230);
     private static readonly uint FrameInner = Rgba(150, 156, 150, 220);
     private static readonly uint Gloss = Rgba(255, 255, 255, 70);
+    private static readonly uint CapColor = Rgba(228, 228, 224);
     private static readonly uint TextColor = Rgba(255, 255, 255);
     private static readonly uint ShadowColor = Rgba(0, 0, 0, 200);
 
@@ -343,7 +344,7 @@ public sealed class OverlayPlugin : IPlugin
 
             var weaknesses = target.Weaknesses.Select(GameIcons.ForElement).ToArray();
             Row(weaknesses, target.Name, $"{target.Health:0} / {target.MaxHealth:0}  ({fraction:P0})",
-                fraction, _recent, fontSize * 0.8f, MonsterFill, target.Capture);
+                fraction, _recent, fontSize * 0.55f, MonsterFill, target.Capture, arrowTip: true);
 
             var total = _damage.Sum(d => d.Damage);
             if (_settings.ShowPartyDamage && total > 0)
@@ -353,7 +354,7 @@ public sealed class OverlayPlugin : IPlugin
                 {
                     var share = (float)d.Damage / total;
                     Row([GameIcons.ForWeapon(d.Weapon)], d.Name, $"{DamageText(d)}  ({share:P0})",
-                        share, share, fontSize * 0.55f, d.IsMe ? MyFill : OthersFill, null);
+                        share, share, fontSize * 0.4f, d.IsMe ? MyFill : OthersFill, null, arrowTip: false);
                 }
             }
         }
@@ -394,7 +395,7 @@ public sealed class OverlayPlugin : IPlugin
     // Una riga: icone del gioco a sinistra (debolezze o arma), sopra la barra il nome a sinistra e i numeri a destra.
     // Le icone sono allineate a destra in uno spazio fisso, così le barre restano allineate tra loro.
     private void Row(GameIcons.Icon?[] icons, string name, string values, float fraction, float recent,
-        float barHeight, BarColors fill, float? capture)
+        float barHeight, BarColors fill, float? capture, bool arrowTip)
     {
         var s = _scale;
         var drawList = ImGui.GetWindowDrawList();
@@ -418,13 +419,15 @@ public sealed class OverlayPlugin : IPlugin
             x += iconSize + gap;
         }
 
-        var left = origin.X + iconArea + gap / 2;
+        // Spazio fisso per la punta a sinistra, uguale per tutte le righe: le barre restano allineate.
+        var tipSpace = fontSize * 1.1f;
+        var left = origin.X + iconArea + gap / 2 + tipSpace;
         OutlinedText(drawList, new Vector2(left + 2 * s, origin.Y), name);
         OutlinedText(drawList, new Vector2(left + width - ImGui.CalcTextSize(values).X - 2 * s, origin.Y), values);
 
         var barMin = new Vector2(left, origin.Y + fontSize + textGap);
         var barMax = barMin + new Vector2(width, barHeight);
-        DrawBar(drawList, barMin, barMax, fraction, recent, fill);
+        DrawBar(drawList, barMin, barMax, fraction, recent, fill, arrowTip);
 
         // Segno "/" alla soglia di cattura (il momento del teschio).
         if (capture is { } c)
@@ -437,20 +440,20 @@ public sealed class OverlayPlugin : IPlugin
             drawList.AddLine(bottom, top, TextColor, 3 * s);
         }
 
-        ImGui.Dummy(new Vector2(iconArea + gap / 2 + width + 4 * s, rowHeight + 4 * s));
+        ImGui.Dummy(new Vector2(iconArea + gap / 2 + tipSpace + width + barHeight + 6 * s, rowHeight + 4 * s));
         ImGui.Dummy(new Vector2(0, gap / 2));
     }
 
-    // Barra alla maniera di vita e stamina del gioco: cornice nera con filo metallico, fondo scuro,
-    // riempimento sfumato con un riflesso nella metà alta e una punta chiara dove finisce.
-    private void DrawBar(ImDrawListPtr drawList, Vector2 min, Vector2 max, float fraction, float recent, BarColors fill)
+    // Barra copiata da vita e stamina del gioco: sottile, bordo scuro, striscia chiara al centro,
+    // una punta a sinistra (freccia come la vita, rombo come la stamina) e una parentesi "›" che la chiude a destra.
+    private void DrawBar(ImDrawListPtr drawList, Vector2 min, Vector2 max, float fraction, float recent, BarColors fill, bool arrowTip)
     {
         var s = _scale;
-        var outer = 3 * s;
-        var inner = 1.5f * s;
-        // Solo il bordo: dentro la barra il fondo resta trasparente.
-        drawList.AddRect(min - new Vector2(inner + outer / 2), max + new Vector2(inner + outer / 2), FrameOuter, 0, ImDrawFlags.None, outer);
-        drawList.AddRect(min - new Vector2(inner), max + new Vector2(inner), FrameInner, 0, ImDrawFlags.None, Math.Max(inner, 1));
+        var h = max.Y - min.Y;
+        var midY = (min.Y + max.Y) / 2;
+        var outline = Math.Max(2 * s, 1);
+
+        drawList.AddRect(min - new Vector2(outline / 2), max + new Vector2(outline / 2), FrameOuter, 0, ImDrawFlags.None, outline);
         drawList.AddRectFilled(min, max, BarTrack);
 
         var width = max.X - min.X;
@@ -459,14 +462,29 @@ public sealed class OverlayPlugin : IPlugin
         if (recentEnd > fillEnd)
             drawList.AddRectFilled(new Vector2(fillEnd, min.Y), new Vector2(recentEnd, max.Y), RecentDamage);
 
-        if (fillEnd <= min.X)
-            return;
-        var fillMax = new Vector2(fillEnd, max.Y);
-        drawList.AddRectFilledMultiColor(min, fillMax, fill.Top, fill.Top, fill.Bottom, fill.Bottom);
-        var glossBottom = min.Y + (max.Y - min.Y) * 0.4f;
-        drawList.AddRectFilled(min, new Vector2(fillEnd, glossBottom), Gloss);
-        if (fraction < 1)
-            drawList.AddLine(new Vector2(fillEnd, min.Y), fillMax, Gloss | 0xFF000000, Math.Max(1.5f * s, 1));
+        if (fillEnd > min.X)
+        {
+            // Scuro sui bordi, chiaro al centro, con un filo di luce nel mezzo.
+            drawList.AddRectFilledMultiColor(min, new Vector2(fillEnd, midY), fill.Bottom, fill.Bottom, fill.Top, fill.Top);
+            drawList.AddRectFilledMultiColor(new Vector2(min.X, midY), new Vector2(fillEnd, max.Y), fill.Top, fill.Top, fill.Bottom, fill.Bottom);
+            drawList.AddLine(new Vector2(min.X, midY), new Vector2(fillEnd, midY), Gloss, Math.Max(h * 0.2f, 1));
+        }
+
+        // Punta a sinistra, sopra l'inizio della barra.
+        var tipHalf = h * 1.3f;
+        var tipLeft = min.X - tipHalf * (arrowTip ? 1.6f : 1.0f);
+        Vector2 l = new(tipLeft, midY), t = new(min.X, midY - tipHalf), r = new(min.X + tipHalf * 0.8f, midY), b = new(min.X, midY + tipHalf);
+        drawList.AddQuad(l, t, r, b, FrameOuter, outline * 2);
+        drawList.AddQuadFilled(l, t, r, b, fill.Top);
+        drawList.AddQuad(l, t, r, b, FrameInner, Math.Max(s, 1));
+        var c = new Vector2((tipLeft + r.X) / 2, midY);
+        drawList.AddQuadFilled(Vector2.Lerp(c, l, 0.45f), Vector2.Lerp(c, t, 0.45f), Vector2.Lerp(c, r, 0.45f), Vector2.Lerp(c, b, 0.45f), Gloss);
+
+        // Parentesi chiara che chiude la barra a destra.
+        var capX = max.X + 3 * s;
+        Vector2[] cap = [new(capX, min.Y - h * 0.7f), new(capX + h * 0.9f, midY), new(capX, max.Y + h * 0.7f)];
+        drawList.AddPolyline(ref cap[0], cap.Length, ShadowColor, ImDrawFlags.None, 5.5f * s);
+        drawList.AddPolyline(ref cap[0], cap.Length, CapColor, ImDrawFlags.None, 3f * s);
     }
 
     // Testo bianco con contorno nero, come le scritte dell'HUD del gioco.
