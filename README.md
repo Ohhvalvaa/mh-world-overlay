@@ -22,17 +22,36 @@ start Monster Hunter: World from Steam as usual and the HUD is there.
 - **Capture threshold marker** — a `/` on the health bar shows exactly where the monster becomes
   capturable (the moment the skull icon appears in game). Hidden for monsters that can't be captured.
 - **Elemental weaknesses** — the game's own element icons, next to the monster's health bar.
-- **Party damage meter** — one bar per hunter with name, damage, share of the total and the game's
-  weapon icon.
+- **Party damage meter** — one bar per hunter with name, damage (or DPS), share of the total and the
+  game's weapon icon. It can be hidden entirely if you only want the monster's health.
+  - **DPS** is calculated from the moment each hunter joined the quest (not the quest timer), so
+    hunters who join later get comparable numbers.
   - In multiplayer it uses the per-player damage the game itself records (quest total).
   - Solo it shows the health the monster has lost (this includes your Palico and the environment).
+- **Scales with your resolution** — sizes follow your screen height (1080p, 1440p, 4K, ultrawide…),
+  with an extra size slider in the settings.
+- **Looks like the game's HUD** — the bars are styled after MHW's own health and stamina bars.
 - **Never gets in the way** — transparent, top-right corner, and it never takes mouse or keyboard
   input, so it can't block your controls.
 - **Uses the game's own icons** — read at runtime from your installed copy of the game; no game files
   are shipped with this project.
 - **Read-only** — it only reads game data. It never changes damage, items, quests or matchmaking.
 
-Colour scheme: the monster bar is black, other hunters are white, you are grey.
+Colour scheme: the monster bar is green like your health bar (the part just lost turns red and drains
+away, as in game), your damage bar is yellow like stamina, other hunters are silver.
+
+## Settings
+
+Press **F9** in game to open the SharpPluginLoader menu, then open **MH World Overlay**:
+
+| Option | What it does |
+|---|---|
+| Show party damage meter | Untick to show only the monster's health, capture marker and weaknesses. |
+| Damage meter shows | `Damage`, `DPS` or `Damage + DPS`. |
+| Size | Extra scale on top of the automatic one (1.00x = default). |
+
+Changes are applied immediately and saved to
+`nativePC\plugins\CSharp\MHWorldOverlay\MHWorldOverlay.json`.
 
 ## Requirements
 
@@ -175,7 +194,9 @@ there is a preview with sample data: `dotnet build -c Release -p:DefineConstants
 ## Italiano (in breve)
 
 HUD dentro il gioco per **Monster Hunter: World** (PC): vita del mostro che stai combattendo con la
-soglia di cattura, debolezze elementali e danni di ogni cacciatore con l'icona dell'arma.
+soglia di cattura, debolezze elementali e danni (o DPS) di ogni cacciatore con l'icona dell'arma.
+Le barre ricordano quelle di vita e stamina del gioco e si adattano alla risoluzione dello schermo.
+Con **F9** → MH World Overlay puoi nascondere i danni del gruppo, scegliere danni/DPS e la dimensione.
 Se ci sono più grandi mostri vicini, il pannello resta sull'obiettivo della missione.
 **Nessuna applicazione esterna**: è un plugin caricato dal gioco tramite SharpPluginLoader, avvii il
 gioco da Steam e basta.
