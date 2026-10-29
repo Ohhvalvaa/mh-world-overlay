@@ -35,6 +35,8 @@ public sealed class OverlayPlugin : IPlugin
     private static readonly BarColors MonsterFill = new(Rgba(140, 226, 96), Rgba(34, 120, 40));
     private static readonly BarColors MyFill = new(Rgba(206, 132, 240), Rgba(104, 42, 150));
     private static readonly BarColors OthersFill = new(Rgba(255, 220, 84), Rgba(196, 128, 12));
+    // Con un colore scelto dall'utente il bordo della sfumatura è lo stesso colore scurito.
+    private const float EdgeDarkening = 0.45f;
     private static readonly uint RecentDamage = Rgba(210, 42, 38); // vita appena persa, rossa come nel gioco
     private static readonly uint BarTrack = Rgba(10, 12, 12, 190);
     private static readonly uint FrameOuter = Rgba(0, 0, 0, 230);
@@ -303,16 +305,47 @@ public sealed class OverlayPlugin : IPlugin
         changed |= ImGui.IsItemDeactivatedAfterEdit();
         ImGui.TextDisabled("Size is relative to your screen height (1.00x = default).");
 
+        ImGui.Separator();
+        changed |= ColorOption("Monster bar", MonsterFill, () => _settings.MonsterColor, v => _settings.MonsterColor = v);
+        changed |= ColorOption("Your bar", MyFill, () => _settings.MyColor, v => _settings.MyColor = v);
+        changed |= ColorOption("Other hunters", OthersFill, () => _settings.OthersColor, v => _settings.OthersColor = v);
+        if (ImGui.Button("Reset colours"))
+        {
+            _settings.MonsterColor = _settings.MyColor = _settings.OthersColor = null;
+            changed = true;
+        }
+
         if (changed)
             _settings.Save();
+    }
+
+    // Selettore di colore; restituisce true quando la scelta è finita e va salvata.
+    private static bool ColorOption(string label, BarColors fallback, Func<string?> get, Action<string?> set)
+    {
+        var color = ImGui.ColorConvertU32ToFloat4(Colors(get(), fallback).Center);
+        var rgb = new Vector3(color.X, color.Y, color.Z);
+        if (ImGui.ColorEdit3(label, ref rgb, ImGuiColorEditFlags.NoInputs))
+            set($"#{(int)(rgb.X * 255):X2}{(int)(rgb.Y * 255):X2}{(int)(rgb.Z * 255):X2}");
+        return ImGui.IsItemDeactivatedAfterEdit();
+    }
+
+    // Colore scelto dall'utente ("#RRGGBB") o quello predefinito se manca o non è valido.
+    private static BarColors Colors(string? hex, BarColors fallback)
+    {
+        if (hex is not { Length: 7 } || hex[0] != '#' || !uint.TryParse(hex[1..], System.Globalization.NumberStyles.HexNumber, null, out var rgb))
+            return fallback;
+        byte r = (byte)(rgb >> 16), g = (byte)(rgb >> 8), b = (byte)rgb;
+        static byte Dark(byte c) => (byte)(c * EdgeDarkening);
+        return new BarColors(Rgba(r, g, b), Rgba(Dark(r), Dark(g), Dark(b)));
     }
 
     public void OnImGuiFreeRender()
     {
 #if PREVIEW
         // Anteprima con dati finti per provare la grafica fuori dalla caccia: dotnet build -p:DefineConstants=PREVIEW
-        // La vita scende di un colpo ogni secondo per vedere la parte rossa.
-        _target = new MonsterInfo(1, "Rathalos", 9400 - Environment.TickCount64 / 1000 % 5 * 500, 21000, 0.2f, [Element.Dragon, Element.Thunder]);
+        // La vita scende di un colpo al secondo (per vedere la parte rossa) e ogni sei secondi arriva a zero (mostro ucciso).
+        var step = Environment.TickCount64 / 1000 % 6;
+        _target = new MonsterInfo(1, "Rathalos", step == 5 ? 0 : 9400 - step * 500, 21000, 0.2f, [Element.Dragon, Element.Thunder]);
         if (_damage.Length == 0)
         {
             _damage = [new("Cacciatore 1", 6200, true, WeaponType.LongSword), new("Cacciatore 2", 4900, false, WeaponType.Bow), new("Cacciatore 3", 2500, false, WeaponType.Hammer)];
@@ -343,7 +376,7 @@ public sealed class OverlayPlugin : IPlugin
 
             var weaknesses = target.Weaknesses.Select(GameIcons.ForElement).ToArray();
             Row(weaknesses, target.Name, $"{target.Health:0} / {target.MaxHealth:0}  ({fraction:P0})",
-                fraction, _recent, fontSize * 0.55f, MonsterFill, target.Capture, arrowTip: true);
+                fraction, _recent, fontSize * 0.55f, Colors(_settings.MonsterColor, MonsterFill), target.Capture, arrowTip: true);
 
             var total = _damage.Sum(d => d.Damage);
             if (_settings.ShowPartyDamage && total > 0)
@@ -353,7 +386,7 @@ public sealed class OverlayPlugin : IPlugin
                 {
                     var share = (float)d.Damage / total;
                     Row([GameIcons.ForWeapon(d.Weapon)], d.Name, $"{DamageText(d)}  ({share:P0})",
-                        share, share, fontSize * 0.4f, d.IsMe ? MyFill : OthersFill, null, arrowTip: false);
+                        share, share, fontSize * 0.4f, d.IsMe ? Colors(_settings.MyColor, MyFill) : Colors(_settings.OthersColor, OthersFill), null, arrowTip: false);
                 }
             }
         }
@@ -468,13 +501,21 @@ public sealed class OverlayPlugin : IPlugin
         if (recentEnd > fillEnd)
             drawList.AddRectFilled(new Vector2(fillEnd, min.Y), new Vector2(recentEnd, max.Y), RecentDamage);
 
-        // Punta: scura sul bordo e chiara dentro, come la sfumatura della barra.
+        // Punta: scura sul bordo e chiara dentro, come la sfumatura della barra. A zero (mostro ucciso)
+        // è vuota come il resto della barra.
         Vector2[] tip = [l, t, new(zeroX, min.Y), new(zeroX, max.Y), b];
-        drawList.AddConvexPolyFilled(ref tip[0], tip.Length, fill.Edge);
-        var squash = new Vector2(0.75f, 0.5f);
-        Vector2 Inner(Vector2 p) => new(min.X + (p.X - min.X) * squash.X, midY + (p.Y - midY) * squash.Y);
-        Vector2[] tipCore = [Inner(l), Inner(t), new(zeroX + 1, midY - h / 4), new(zeroX + 1, midY + h / 4), Inner(b)];
-        drawList.AddConvexPolyFilled(ref tipCore[0], tipCore.Length, fill.Center);
+        if (fraction <= 0)
+        {
+            drawList.AddConvexPolyFilled(ref tip[0], tip.Length, BarTrack);
+        }
+        else
+        {
+            drawList.AddConvexPolyFilled(ref tip[0], tip.Length, fill.Edge);
+            var squash = new Vector2(0.75f, 0.5f);
+            Vector2 Inner(Vector2 p) => new(min.X + (p.X - min.X) * squash.X, midY + (p.Y - midY) * squash.Y);
+            Vector2[] tipCore = [Inner(l), Inner(t), new(zeroX + 1, midY - h / 4), new(zeroX + 1, midY + h / 4), Inner(b)];
+            drawList.AddConvexPolyFilled(ref tipCore[0], tipCore.Length, fill.Center);
+        }
 
         if (fillEnd > zeroX)
         {
@@ -482,7 +523,8 @@ public sealed class OverlayPlugin : IPlugin
             drawList.AddRectFilledMultiColor(new Vector2(zeroX, midY), new Vector2(fillEnd, max.Y), fill.Center, fill.Center, fill.Edge, fill.Edge);
         }
         // Filo di luce al centro, dalla punta fino a dove arriva la barra.
-        drawList.AddLine(new Vector2(l.X + tipHalf * 0.5f, midY), new Vector2(Math.Max(fillEnd, zeroX), midY), Gloss, Math.Max(h * 0.2f, 1));
+        if (fraction > 0)
+            drawList.AddLine(new Vector2(l.X + tipHalf * 0.5f, midY), new Vector2(fillEnd, midY), Gloss, Math.Max(h * 0.2f, 1));
 
         // Parentesi chiara che chiude la barra a destra.
         var capX = max.X + 3 * s;

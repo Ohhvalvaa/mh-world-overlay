@@ -52,6 +52,7 @@ Press **F9** in game to open the SharpPluginLoader menu, then open **MH World Ov
 | Show party damage meter | Untick to show only the monster's health, capture marker and weaknesses. |
 | Damage meter shows | `Damage`, `DPS` or `Damage + DPS`. |
 | Size | Extra scale on top of the automatic one (1.00x = default). |
+| Monster bar / Your bar / Other hunters | Pick your own bar colours. **Reset colours** goes back to the game's colours. |
 
 Changes are applied immediately and saved to
 `nativePC\plugins\CSharp\MHWorldOverlay\MHWorldOverlay.json`.

@@ -25,6 +25,10 @@ internal sealed class Settings
     public DamageDisplay DamageDisplay { get; set; } = DamageDisplay.Damage;
     // Moltiplicatore sopra la scala automatica (che segue l'altezza dello schermo, riferimento 4K).
     public float Scale { get; set; } = 1.0f;
+    // Colori delle barre come "#RRGGBB"; vuoto = colore predefinito (vita, veleno, stamina).
+    public string? MonsterColor { get; set; }
+    public string? MyColor { get; set; }
+    public string? OthersColor { get; set; }
 
     public static Settings Load()
     {
