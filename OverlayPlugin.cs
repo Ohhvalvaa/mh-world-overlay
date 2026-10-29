@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Numerics;
 using ImGuiNET;
 using SharpPluginLoader.Core;
@@ -28,23 +28,22 @@ public sealed class OverlayPlugin : IPlugin
         MonsterType.Wulg, MonsterType.Cortos, MonsterType.Boaboa, MonsterType.Unavaliable,
     ];
 
-    // Barre nello stile dell'HUD del gioco: riempimento sfumato (chiaro sopra, scuro sotto) dentro una
-    // cornice nera, punta a sinistra e parentesi a destra. Palette della mod: solo bianco, nero e grigi.
-    // Mostro nero, altri giocatori bianco, tu grigio; la parte vuota della barra è un grigio chiaro trasparente.
-    private readonly record struct BarColors(uint Top, uint Bottom);
-    private static readonly BarColors MonsterFill = new(Rgba(64, 64, 64), Rgba(0, 0, 0));
-    private static readonly BarColors MyFill = new(Rgba(150, 150, 150), Rgba(92, 92, 92));
-    private static readonly BarColors OthersFill = new(Rgba(255, 255, 255), Rgba(196, 196, 196));
-    private static readonly uint RecentDamage = Rgba(255, 255, 255, 170); // vita appena persa: si svuota piano, come nel gioco
-    private static readonly uint BarTrack = Rgba(176, 176, 176, 96);
+    // Barre nello stile dell'HUD del gioco: colori di vita, veleno e stamina, chiari al centro e scuri sui bordi;
+    // la parte vuota Ã¨ scura come nel gioco, cosÃ¬ si vede la barra che si accorcia verso la punta (lo zero).
+    // Mostro verde come la vita, tu viola come la vita avvelenata, gli altri gialli come la stamina.
+    private readonly record struct BarColors(uint Center, uint Edge);
+    private static readonly BarColors MonsterFill = new(Rgba(140, 226, 96), Rgba(34, 120, 40));
+    private static readonly BarColors MyFill = new(Rgba(206, 132, 240), Rgba(104, 42, 150));
+    private static readonly BarColors OthersFill = new(Rgba(255, 220, 84), Rgba(196, 128, 12));
+    private static readonly uint RecentDamage = Rgba(210, 42, 38); // vita appena persa, rossa come nel gioco
+    private static readonly uint BarTrack = Rgba(10, 12, 12, 190);
     private static readonly uint FrameOuter = Rgba(0, 0, 0, 230);
-    private static readonly uint FrameInner = Rgba(150, 156, 150, 220);
     private static readonly uint Gloss = Rgba(255, 255, 255, 70);
     private static readonly uint CapColor = Rgba(228, 228, 224);
     private static readonly uint TextColor = Rgba(255, 255, 255);
     private static readonly uint ShadowColor = Rgba(0, 0, 0, 200);
 
-    // Misure pensate per uno schermo alto 2160 pixel (4K): a risoluzioni più basse si riducono in proporzione.
+    // Misure pensate per uno schermo alto 2160 pixel (4K): a risoluzioni piÃ¹ basse si riducono in proporzione.
     private const float ReferenceHeight = 2160;
     private const float FontScale = 1.8f;
     private const float BarWidth = 810;
@@ -63,13 +62,13 @@ public sealed class OverlayPlugin : IPlugin
     private DamageRow[] _damage = [];
 
     // Mostro che stai combattendo: l'ultimo grande mostro che ha perso vita.
-    // Se è l'obiettivo della missione, un altro mostro colpito lì vicino non gli ruba il pannello.
+    // Se Ã¨ l'obiettivo della missione, un altro mostro colpito lÃ¬ vicino non gli ruba il pannello.
     private readonly Dictionary<nint, float> _lastHealth = [];
     private nint _targetInstance;
     private readonly Stopwatch _sinceLastHit = new();
 
-    // DPS: per ogni cacciatore il tempo da quando è entrato nella missione (non il timer della missione),
-    // così chi arriva dopo non viene penalizzato.
+    // DPS: per ogni cacciatore il tempo da quando Ã¨ entrato nella missione (non il timer della missione),
+    // cosÃ¬ chi arriva dopo non viene penalizzato.
     private readonly Dictionary<string, Stopwatch> _joined = [];
     private int _lastQuestId = -1;
     private int _lastTotal;
@@ -265,7 +264,7 @@ public sealed class OverlayPlugin : IPlugin
         _damage = [new DamageRow("Tu", (int)(target.MaxHealth - target.Health), true, MyWeapon())];
     }
 
-    // Arma del giocatore locale da SPL: più aggiornata del dato del gruppo quando cambi arma.
+    // Arma del giocatore locale da SPL: piÃ¹ aggiornata del dato del gruppo quando cambi arma.
     private static WeaponType MyWeapon()
     {
         try
@@ -323,7 +322,7 @@ public sealed class OverlayPlugin : IPlugin
         if (_target is not { } target)
             return;
 
-        // DisplaySize è la risoluzione reale del gioco (non quella scalata da Windows).
+        // DisplaySize Ã¨ la risoluzione reale del gioco (non quella scalata da Windows).
         var io = ImGui.GetIO();
         var screen = io.DisplaySize;
         _scale = screen.Y / ReferenceHeight * Math.Clamp(_settings.Scale, 0.5f, 2f);
@@ -368,7 +367,7 @@ public sealed class OverlayPlugin : IPlugin
         _ => $"{d.Damage}",
     };
 
-    // Come nel gioco: dopo un colpo la vita persa resta rossa per un attimo e poi si svuota.
+    // Come nel gioco: dopo un colpo la vita persa resta rossa per un attimo e poi sparisce.
     private void UpdateRecentDamage(nint instance, float fraction, float deltaTime)
     {
         if (instance != _recentInstance || fraction > _recent)
@@ -393,7 +392,7 @@ public sealed class OverlayPlugin : IPlugin
     }
 
     // Una riga: icone del gioco a sinistra (debolezze o arma), sopra la barra il nome a sinistra e i numeri a destra.
-    // Le icone sono allineate a destra in uno spazio fisso, così le barre restano allineate tra loro.
+    // Le icone sono allineate a destra in uno spazio fisso, cosÃ¬ le barre restano allineate tra loro.
     private void Row(GameIcons.Icon?[] icons, string name, string values, float fraction, float recent,
         float barHeight, BarColors fill, float? capture, bool arrowTip)
     {
@@ -427,12 +426,12 @@ public sealed class OverlayPlugin : IPlugin
 
         var barMin = new Vector2(left, origin.Y + fontSize + textGap);
         var barMax = barMin + new Vector2(width, barHeight);
-        DrawBar(drawList, barMin, barMax, fraction, recent, fill, arrowTip);
+        var zeroX = DrawBar(drawList, barMin, barMax, fraction, recent, fill, arrowTip);
 
         // Segno "/" alla soglia di cattura (il momento del teschio).
         if (capture is { } c)
         {
-            var cx = barMin.X + width * c;
+            var cx = zeroX + (barMax.X - zeroX) * c;
             var bottom = new Vector2(cx - 5 * s, barMax.Y + 4 * s);
             var top = new Vector2(cx + 5 * s, barMin.Y - 4 * s);
             var shadow = new Vector2(1.5f, 1.5f) * s;
@@ -444,47 +443,53 @@ public sealed class OverlayPlugin : IPlugin
         ImGui.Dummy(new Vector2(0, gap / 2));
     }
 
-    // Barra copiata da vita e stamina del gioco: sottile, bordo scuro, striscia chiara al centro,
-    // una punta a sinistra (freccia come la vita, rombo come la stamina) e una parentesi "›" che la chiude a destra.
-    private void DrawBar(ImDrawListPtr drawList, Vector2 min, Vector2 max, float fraction, float recent, BarColors fill, bool arrowTip)
+    // Barra copiata da vita e stamina del gioco: punta e barra sono un pezzo unico con un solo bordo scuro.
+    // La punta (freccia come la vita, rombo come la stamina) Ã¨ lo zero: Ã¨ sempre colorata e il riempimento
+    // parte da lÃ¬; a destra una parentesi "â€º" chiude la barra. Restituisce la x dello zero.
+    private float DrawBar(ImDrawListPtr drawList, Vector2 min, Vector2 max, float fraction, float recent, BarColors fill, bool arrowTip)
     {
         var s = _scale;
         var h = max.Y - min.Y;
         var midY = (min.Y + max.Y) / 2;
-        var outline = Math.Max(2 * s, 1);
+        var outline = Math.Max(2.5f * s, 1);
 
-        drawList.AddRect(min - new Vector2(outline / 2), max + new Vector2(outline / 2), FrameOuter, 0, ImDrawFlags.None, outline);
-        drawList.AddRectFilled(min, max, BarTrack);
+        // Punta centrata su min.X; il lato destro (a 45 gradi) incontra la barra in zeroX.
+        var tipHalf = h * 0.95f;
+        var zeroX = min.X + tipHalf - h / 2;
+        Vector2 l = new(min.X - tipHalf * (arrowTip ? 1.6f : 1.0f), midY), t = new(min.X, midY - tipHalf), b = new(min.X, midY + tipHalf);
+        Vector2[] shape = [l, t, new(zeroX, min.Y), new(max.X, min.Y), new(max.X, max.Y), new(zeroX, max.Y), b];
+        drawList.AddPolyline(ref shape[0], shape.Length, FrameOuter, ImDrawFlags.Closed, outline * 2);
 
-        var width = max.X - min.X;
-        var fillEnd = min.X + width * Math.Clamp(fraction, 0, 1);
-        var recentEnd = min.X + width * Math.Clamp(recent, 0, 1);
+        var barMin = new Vector2(zeroX, min.Y);
+        drawList.AddRectFilled(barMin, max, BarTrack);
+        var width = max.X - zeroX;
+        var fillEnd = zeroX + width * Math.Clamp(fraction, 0, 1);
+        var recentEnd = zeroX + width * Math.Clamp(recent, 0, 1);
         if (recentEnd > fillEnd)
             drawList.AddRectFilled(new Vector2(fillEnd, min.Y), new Vector2(recentEnd, max.Y), RecentDamage);
 
-        if (fillEnd > min.X)
-        {
-            // Scuro sui bordi, chiaro al centro, con un filo di luce nel mezzo.
-            drawList.AddRectFilledMultiColor(min, new Vector2(fillEnd, midY), fill.Bottom, fill.Bottom, fill.Top, fill.Top);
-            drawList.AddRectFilledMultiColor(new Vector2(min.X, midY), new Vector2(fillEnd, max.Y), fill.Top, fill.Top, fill.Bottom, fill.Bottom);
-            drawList.AddLine(new Vector2(min.X, midY), new Vector2(fillEnd, midY), Gloss, Math.Max(h * 0.2f, 1));
-        }
+        // Punta: scura sul bordo e chiara dentro, come la sfumatura della barra.
+        Vector2[] tip = [l, t, new(zeroX, min.Y), new(zeroX, max.Y), b];
+        drawList.AddConvexPolyFilled(ref tip[0], tip.Length, fill.Edge);
+        var squash = new Vector2(0.75f, 0.5f);
+        Vector2 Inner(Vector2 p) => new(min.X + (p.X - min.X) * squash.X, midY + (p.Y - midY) * squash.Y);
+        Vector2[] tipCore = [Inner(l), Inner(t), new(zeroX + 1, midY - h / 4), new(zeroX + 1, midY + h / 4), Inner(b)];
+        drawList.AddConvexPolyFilled(ref tipCore[0], tipCore.Length, fill.Center);
 
-        // Punta a sinistra, sopra l'inizio della barra.
-        var tipHalf = h * 1.3f;
-        var tipLeft = min.X - tipHalf * (arrowTip ? 1.6f : 1.0f);
-        Vector2 l = new(tipLeft, midY), t = new(min.X, midY - tipHalf), r = new(min.X + tipHalf * 0.8f, midY), b = new(min.X, midY + tipHalf);
-        drawList.AddQuad(l, t, r, b, FrameOuter, outline * 2);
-        drawList.AddQuadFilled(l, t, r, b, fill.Top);
-        drawList.AddQuad(l, t, r, b, FrameInner, Math.Max(s, 1));
-        var c = new Vector2((tipLeft + r.X) / 2, midY);
-        drawList.AddQuadFilled(Vector2.Lerp(c, l, 0.45f), Vector2.Lerp(c, t, 0.45f), Vector2.Lerp(c, r, 0.45f), Vector2.Lerp(c, b, 0.45f), Gloss);
+        if (fillEnd > zeroX)
+        {
+            drawList.AddRectFilledMultiColor(barMin, new Vector2(fillEnd, midY), fill.Edge, fill.Edge, fill.Center, fill.Center);
+            drawList.AddRectFilledMultiColor(new Vector2(zeroX, midY), new Vector2(fillEnd, max.Y), fill.Center, fill.Center, fill.Edge, fill.Edge);
+        }
+        // Filo di luce al centro, dalla punta fino a dove arriva la barra.
+        drawList.AddLine(new Vector2(l.X + tipHalf * 0.5f, midY), new Vector2(Math.Max(fillEnd, zeroX), midY), Gloss, Math.Max(h * 0.2f, 1));
 
         // Parentesi chiara che chiude la barra a destra.
         var capX = max.X + 3 * s;
         Vector2[] cap = [new(capX, min.Y - h * 0.7f), new(capX + h * 0.9f, midY), new(capX, max.Y + h * 0.7f)];
         drawList.AddPolyline(ref cap[0], cap.Length, ShadowColor, ImDrawFlags.None, 5.5f * s);
         drawList.AddPolyline(ref cap[0], cap.Length, CapColor, ImDrawFlags.None, 3f * s);
+        return zeroX;
     }
 
     // Testo bianco con contorno nero, come le scritte dell'HUD del gioco.
