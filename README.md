@@ -37,8 +37,8 @@ start Monster Hunter: World from Steam as usual and the HUD is there.
   are shipped with this project.
 - **Read-only** — it only reads game data. It never changes damage, items, quests or matchmaking.
 
-Colour scheme: the monster bar is green like your health bar (the part just lost turns red and drains
-away, as in game), your damage bar is yellow like stamina, other hunters are silver.
+Colour scheme: the monster bar is black, other hunters are white, you are grey. Just like the game's
+health bar, the health the monster has just lost stays highlighted for a moment and then drains away.
 
 ## Settings
 

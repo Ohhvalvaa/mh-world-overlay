@@ -29,13 +29,14 @@ public sealed class OverlayPlugin : IPlugin
     ];
 
     // Barre nello stile dell'HUD del gioco: riempimento sfumato (chiaro sopra, scuro sotto) dentro una
-    // cornice nera con un filo metallico. Mostro verde come la vita, tu giallo come la stamina, gli altri argento.
+    // cornice nera con un filo metallico. Palette della mod: solo bianco, nero e grigi.
+    // Mostro nero, altri giocatori bianco, tu grigio; la parte vuota della barra è un grigio chiaro trasparente.
     private readonly record struct BarColors(uint Top, uint Bottom);
-    private static readonly BarColors MonsterFill = new(Rgba(132, 214, 78), Rgba(38, 112, 28));
-    private static readonly BarColors MyFill = new(Rgba(250, 218, 92), Rgba(190, 128, 16));
-    private static readonly BarColors OthersFill = new(Rgba(236, 236, 230), Rgba(138, 140, 136));
-    private static readonly uint RecentDamage = Rgba(214, 40, 34);   // parte rossa che si svuota piano, come la vita nel gioco
-    private static readonly uint BarTrack = Rgba(16, 18, 18, 200);
+    private static readonly BarColors MonsterFill = new(Rgba(64, 64, 64), Rgba(0, 0, 0));
+    private static readonly BarColors MyFill = new(Rgba(150, 150, 150), Rgba(92, 92, 92));
+    private static readonly BarColors OthersFill = new(Rgba(255, 255, 255), Rgba(196, 196, 196));
+    private static readonly uint RecentDamage = Rgba(255, 255, 255, 170); // vita appena persa: si svuota piano, come nel gioco
+    private static readonly uint BarTrack = Rgba(176, 176, 176, 96);
     private static readonly uint FrameOuter = Rgba(0, 0, 0, 230);
     private static readonly uint FrameInner = Rgba(150, 156, 150, 220);
     private static readonly uint Gloss = Rgba(255, 255, 255, 70);
@@ -447,7 +448,8 @@ public sealed class OverlayPlugin : IPlugin
         var s = _scale;
         var outer = 3 * s;
         var inner = 1.5f * s;
-        drawList.AddRectFilled(min - new Vector2(outer + inner), max + new Vector2(outer + inner), FrameOuter);
+        // Solo il bordo: dentro la barra il fondo resta trasparente.
+        drawList.AddRect(min - new Vector2(inner + outer / 2), max + new Vector2(inner + outer / 2), FrameOuter, 0, ImDrawFlags.None, outer);
         drawList.AddRect(min - new Vector2(inner), max + new Vector2(inner), FrameInner, 0, ImDrawFlags.None, Math.Max(inner, 1));
         drawList.AddRectFilled(min, max, BarTrack);
 
