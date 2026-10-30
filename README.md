@@ -24,8 +24,9 @@ start Monster Hunter: World from Steam as usual and the HUD is there.
 - **Elemental weaknesses** — the game's own element icons, next to the monster's health bar.
 - **Party damage meter** — one bar per hunter with name, damage (or DPS), share of the total and the
   game's weapon icon. It can be hidden entirely if you only want the monster's health.
-  - **DPS** is calculated from the moment each hunter joined the quest (not the quest timer), so
-    hunters who join later get comparable numbers.
+  - **DPS** counts only the damage dealt since each hunter joined (not the quest timer), so hunters
+    who join later get comparable numbers. If you join someone else's quest, damage they dealt before
+    you arrived stays in their total but not in their DPS.
   - In multiplayer it uses the per-player damage the game itself records (quest total).
   - Solo it shows the health the monster has lost (this includes your Palico and the environment).
 - **Scales with your resolution** — sizes follow your screen height (1080p, 1440p, 4K, ultrawide…),
@@ -45,7 +46,9 @@ the health the monster has just lost shows in red for a moment, as in game.
 
 ## Settings
 
-Press **F9** in game to open the SharpPluginLoader menu, then open **MH World Overlay**:
+Press **F9** in game to open the SharpPluginLoader menu, then click **MH World Overlay settings**.
+The options open in their own window, so they don't mix with other mods in the menu, and the window
+closes together with the F9 menu:
 
 | Option | What it does |
 |---|---|
@@ -200,7 +203,7 @@ there is a preview with sample data: `dotnet build -c Release -p:DefineConstants
 HUD dentro il gioco per **Monster Hunter: World** (PC): vita del mostro che stai combattendo con la
 soglia di cattura, debolezze elementali e danni (o DPS) di ogni cacciatore con l'icona dell'arma.
 Le barre ricordano quelle di vita e stamina del gioco e si adattano alla risoluzione dello schermo.
-Con **F9** → MH World Overlay puoi nascondere i danni del gruppo, scegliere danni/DPS e la dimensione.
+Con **F9** → MH World Overlay settings si apre una finestra separata dove puoi nascondere i danni del gruppo, scegliere danni/DPS e la dimensione.
 Se ci sono più grandi mostri vicini, il pannello resta sull'obiettivo della missione.
 **Nessuna applicazione esterna**: è un plugin caricato dal gioco tramite SharpPluginLoader, avvii il
 gioco da Steam e basta.

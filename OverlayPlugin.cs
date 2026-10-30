@@ -3,6 +3,7 @@ using System.Numerics;
 using ImGuiNET;
 using SharpPluginLoader.Core;
 using SharpPluginLoader.Core.Entities;
+using SharpPluginLoader.Core.Rendering;
 
 namespace MHWorldOverlay;
 
@@ -69,11 +70,7 @@ public sealed class OverlayPlugin : IPlugin
     private nint _targetInstance;
     private readonly Stopwatch _sinceLastHit = new();
 
-    // DPS: per ogni cacciatore il tempo da quando Ã¨ entrato nella missione (non il timer della missione),
-    // cosÃ¬ chi arriva dopo non viene penalizzato.
-    private readonly Dictionary<string, Stopwatch> _joined = [];
-    private int _lastQuestId = -1;
-    private int _lastTotal;
+    private readonly DpsTracker _dps = new();
 
     // Parte rossa della barra del mostro.
     private nint _recentInstance;
@@ -82,7 +79,11 @@ public sealed class OverlayPlugin : IPlugin
     private float _recentHold;
 
     private Settings _settings = new();
+    private bool _showSettings;
     private float _scale = 1;
+#if PREVIEW
+    private readonly Stopwatch _previewTime = Stopwatch.StartNew();
+#endif
 
     private float _sinceRefresh = RefreshSeconds;
     private bool _versionChecked;
@@ -202,22 +203,7 @@ public sealed class OverlayPlugin : IPlugin
             return;
         }
         ReadDamage(target);
-        TrackJoins();
-    }
-
-    private void TrackJoins()
-    {
-        // Nuova missione, o danni azzerati (altro mostro da solo, rientro): si riparte da zero.
-        var questId = CurrentQuestId();
-        var total = _damage.Sum(d => d.Damage);
-        if (questId != _lastQuestId || total < _lastTotal)
-            _joined.Clear();
-        _lastQuestId = questId;
-        _lastTotal = total;
-
-        foreach (var d in _damage)
-            if (!_joined.ContainsKey(d.Name))
-                _joined[d.Name] = Stopwatch.StartNew();
+        _dps.Update(CurrentQuestId(), _damage.Select(d => (d.Name, d.Damage, d.IsMe)));
     }
 
     private static int CurrentQuestId()
@@ -231,9 +217,6 @@ public sealed class OverlayPlugin : IPlugin
             return -1;
         }
     }
-
-    private double Dps(DamageRow d) =>
-        _joined.TryGetValue(d.Name, out var since) ? d.Damage / Math.Max(since.Elapsed.TotalSeconds, 1) : 0;
 
     private void ReadDamage(MonsterInfo target)
     {
@@ -279,8 +262,24 @@ public sealed class OverlayPlugin : IPlugin
         }
     }
 
-    // Impostazioni nel menu di SharpPluginLoader (F9); ogni modifica viene salvata subito.
+    // Nel menu di SharpPluginLoader (F9) solo un pulsante, per non mescolarsi alle altre mod.
     public void OnImGuiRender()
+    {
+        if (ImGui.Button("MH World Overlay settings"))
+            _showSettings = !_showSettings;
+    }
+
+    // Finestra separata delle impostazioni: si chiude anche con il menu F9. Ogni modifica viene salvata subito.
+    private void DrawSettings()
+    {
+        if (!_showSettings || !Renderer.MenuShown)
+            return;
+        if (ImGui.Begin("MH World Overlay settings", ref _showSettings, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoCollapse))
+            SettingsContent();
+        ImGui.End();
+    }
+
+    private void SettingsContent()
     {
         var changed = false;
 
@@ -341,16 +340,17 @@ public sealed class OverlayPlugin : IPlugin
 
     public void OnImGuiFreeRender()
     {
+        DrawSettings();
+
 #if PREVIEW
         // Anteprima con dati finti per provare la grafica fuori dalla caccia: dotnet build -p:DefineConstants=PREVIEW
         // La vita scende di un colpo al secondo (per vedere la parte rossa) e ogni sei secondi arriva a zero (mostro ucciso).
         var step = Environment.TickCount64 / 1000 % 6;
         _target = new MonsterInfo(1, "Rathalos", step == 5 ? 0 : 9400 - step * 500, 21000, 0.2f, [Element.Dragon, Element.Thunder]);
-        if (_damage.Length == 0)
-        {
-            _damage = [new("Cacciatore 1", 6200, true, WeaponType.LongSword), new("Cacciatore 2", 4900, false, WeaponType.Bow), new("Cacciatore 3", 2500, false, WeaponType.Hammer)];
-            TrackJoins();
-        }
+        // Come entrare nella missione di un altro: 100, 80 e 40 di DPS, gli altri con danni già fatti prima.
+        var seconds = (int)_previewTime.Elapsed.TotalSeconds;
+        _damage = [new("Cacciatore 1", seconds * 100, true, WeaponType.LongSword), new("Cacciatore 2", 4900 + seconds * 80, false, WeaponType.Bow), new("Cacciatore 3", 2500 + seconds * 40, false, WeaponType.Hammer)];
+        _dps.Update(1, _damage.Select(d => (d.Name, d.Damage, d.IsMe)));
 #endif
         if (_target is not { } target)
             return;
@@ -395,8 +395,8 @@ public sealed class OverlayPlugin : IPlugin
 
     private string DamageText(DamageRow d) => _settings.DamageDisplay switch
     {
-        DamageDisplay.Dps => FormattableString.Invariant($"{Dps(d):0.0} DPS"),
-        DamageDisplay.Both => FormattableString.Invariant($"{d.Damage}   {Dps(d):0.0} DPS"),
+        DamageDisplay.Dps => FormattableString.Invariant($"{_dps.Dps(d.Name):0.0} DPS"),
+        DamageDisplay.Both => FormattableString.Invariant($"{d.Damage}   {_dps.Dps(d.Name):0.0} DPS"),
         _ => $"{d.Damage}",
     };
 
